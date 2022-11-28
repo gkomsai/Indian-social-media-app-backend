@@ -46,21 +46,17 @@ userRouter.patch("/update/:id", async (req, res) => {
   const id = req.params.id; // the id of the person who wants to update
 
   const { userId, password } = req.body;
+  // console.log("req.body user ke patch req me", req.body);
 
   if (id === userId) {
-    try {
-      // if we also have to update password then password will be bcrypted again
-      if (password) {
-        const salt = await bcrypt.genSalt(10);
-        req.body.password = await bcrypt.hash(password, salt);
-      }
-
+    try {  
       const user = await UserModel.findByIdAndUpdate(id, req.body, {
         new: true,
       });
 
       return res.status(200).send(user);
     } catch (err) {
+      // console.log(err);
       res.status(500).send({ status: "error", message: err.message });
     }
   } else {
@@ -76,7 +72,7 @@ userRouter.patch("/update/:id", async (req, res) => {
 userRouter.delete("/delete/:id", async (req, res) => {
   const id = req.params.id;
 
-  const { userId } = req.body;
+  const {userId} = req.body;
 
   if (userId === id) {
     try {
@@ -105,23 +101,25 @@ userRouter.delete("/delete/:id", async (req, res) => {
 /*  ----------------------for following a user-------------------------------- */
 
 userRouter.patch("/:id/follow", async (req, res) => {
+  // note- put or patch both will work
   const id = req.params.id;
   const currentUserId = req.body.userId;
+  //   console.log(id, userId);
   if (currentUserId == id) {
     return res
       .status(403)
-      .send({ status: "error", message: "Action Forbidden" });
+      .send({ status: "error", message: "You can't follow yourself" });
   } else {
     try {
       const followUser = await UserModel.findById(id);
       const followingUser = await UserModel.findById(currentUserId);
 
       if (!followUser.followers.includes(currentUserId)) {
-        await followUser.updateOne({ $push: { followers: currentUserId } });
-        await followingUser.updateOne({ $push: { following: id } });
+        await followUser.updateOne({ $push: { followers: currentUserId } },{new:true});
+        await followingUser.updateOne({ $push: { following: id } },{new:true});
         res
           .status(200)
-          .send({ status: "success", message: "User followed Successfully!" });
+          .send({ status: "success", message: "User followed Successfully!"});
       } else {
         return res.status(403).send({
           status: "error",
@@ -129,6 +127,7 @@ userRouter.patch("/:id/follow", async (req, res) => {
         });
       }
     } catch (err) {
+      // console.log(err);
       res.status(500).send({ status: "error", message: err.message });
     }
   }
@@ -139,7 +138,9 @@ userRouter.patch("/:id/follow", async (req, res) => {
 userRouter.patch("/:id/unfollow", async (req, res) => {
   const id = req.params.id;
   const currentUserId = req.body.userId;
+  //   console.log(id, currentUserId);
   if (currentUserId == id) {
+    // i.e the person want to unfollow himself
     return res
       .status(403)
       .send({ status: "error", message: "Action Forbidden" });
@@ -149,11 +150,11 @@ userRouter.patch("/:id/unfollow", async (req, res) => {
       const unfollowingUser = await UserModel.findById(currentUserId); // curr user
 
       if (unfollowUser.followers.includes(currentUserId)) {
-        await unfollowUser.updateOne({ $pull: { followers: currentUserId } });
-        await unfollowingUser.updateOne({ $pull: { following: id } });
+        await unfollowUser.updateOne({ $pull: { followers: currentUserId } },{new:true});
+        await unfollowingUser.updateOne({ $pull: { following: id } },{new:true});
         res
           .status(200)
-          .send({ status: "success", message: "User unfollowed Successfully" });
+          .send({ status: "success", message: "User unfollowed Successfully"});
       } else {
         return res.status(403).send({
           status: "error",
@@ -161,6 +162,7 @@ userRouter.patch("/:id/unfollow", async (req, res) => {
         });
       }
     } catch (err) {
+      // console.log(err);
       res.status(500).send({ status: "error", message: err.message });
     }
   }

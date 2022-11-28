@@ -3,7 +3,9 @@ const { checkUserAuth } = require("../middleware/authMiddleware");
 const { ChatModel } = require("../models/chatModel");
 const chatRouter = Router();
 
+
 chatRouter.use(checkUserAuth);
+
 
 chatRouter.post("/", async (req, res) => {
   const newChat = new ChatModel({
@@ -17,6 +19,9 @@ chatRouter.post("/", async (req, res) => {
   }
 });
 
+
+
+
 chatRouter.get("/:userId", async (req, res) => {
   try {
     const foundMember = await ChatModel.find({
@@ -27,6 +32,8 @@ chatRouter.get("/:userId", async (req, res) => {
     return res.status(500).send({ status: "error", message: err.message });
   }
 });
+
+
 
 chatRouter.get("/find/:firstId/:secondId", async (req, res) => {
   try {

@@ -6,18 +6,28 @@ const { UserModel } = require("../models/userModel");
 const { cloudinary } = require("../config/cloudinary");
 const upload = require("../config/multer");
 const postsRouter = Router();
+const webp = require("webp-converter");
 
 postsRouter.use(checkUserAuth);
 
 /*  ----------------------for uploading the images-------------------------------- */
 
 postsRouter.post("/upload", upload.single("file"), async (req, res) => {
+  const output_path = Date.now + "result.webp";
   try {
-    const result = await cloudinary.uploader.upload(req.file.path);
+    const compressing = await webp.cwebp(
+      req.file.path,
+      output_path,
+      "-q 5",
+      (logging = "-quiet")
+    );
+    // console.log(compressing);
+    const result = await cloudinary.uploader.upload(output_path);
     if (result) {
       return res.status(200).send(result);
     }
   } catch (err) {
+    // console.log(err);
     return res.status(500).send({ status: "error", message: err.message });
   }
 });
@@ -112,7 +122,7 @@ postsRouter.delete("/delete/:id", async (req, res) => {
     } else {
       return res
         .status(403)
-        .send({ status: "error", message: "You can't delete other's posts" });
+        .send({ status: "error", message: "Access Denied! You are not autorize to delete other's posts" });
     }
   } catch (err) {
     return res.status(500).send({ status: "error", message: err.message });
@@ -132,6 +142,7 @@ postsRouter.patch("/like/:id", async (req, res) => {
     } else {
       await foundPost.updateOne({ $push: { likes: userId } });
       // await foundPost.updateOne({ $push: { likes: userId }, new:true });
+      // console.log({foundPost});
       res.status(200).send({ status: "success", message: "Post liked" });
     }
   } catch (err) {
@@ -142,9 +153,15 @@ postsRouter.patch("/like/:id", async (req, res) => {
 /*  ----------------------for getting the timeline post of a user -------------------------------- */
 
 postsRouter.get("/:id/timeline", async (req, res) => {
+  // console.log("inside timeline post");
+  // const userId = req.params.id
   const { userId } = req.body;
+  // console.log({userId})
+
   try {
     const currentUserPosts = await PostModel.find({ userId });
+    // return res.send(currentUserPosts);
+
     const followingPostsMainArr = await UserModel.aggregate([
       {
         $match: {
@@ -158,23 +175,21 @@ postsRouter.get("/:id/timeline", async (req, res) => {
           foreignField: "userId",
           as: "followingPosts",
         },
-      },
+      },     
       {
         $project: {
           followingPosts: 1,
           _id: 1,
         },
-      },
+      }, 
     ]);
-
-    res.status(200).send(
-      currentUserPosts
-        .concat(...followingPostsMainArr[0].followingPosts)
-        .sort((a, b) => {
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        })
-    );
+    // console.log("followingPostsMainArr", followingPostsMainArr);
+    let final= currentUserPosts
+    .concat(...followingPostsMainArr[0].followingPosts)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+   return res.status(200).send(final);
   } catch (err) {
+    // console.error(err);
     res.status(500).send({ message: err.message });
   }
 });

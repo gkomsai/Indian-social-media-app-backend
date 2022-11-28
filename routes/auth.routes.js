@@ -19,9 +19,10 @@ authRouter.post(
   [emailPassRequiredValidator, emailValidator, passwordValidator],
   async (req, res) => {
     try {
+      // console.log(req.body);
       const { email, password } = req.body;
       const isemailPresent = await UserModel.findOne({ email });
-
+      // console.log(isemailPresent);
       if (isemailPresent) {
         res
           .status(400)
@@ -40,6 +41,7 @@ authRouter.post(
             });
           })
           .catch((err) => {
+            // console.log(err);
             return res
               .status(400)
               .send({ status: "error", message: err.message });
@@ -56,7 +58,7 @@ authRouter.post("/login", emailPassRequiredValidator, async (req, res) => {
     const { email, password } = req.body;
 
     const user = await UserModel.findOne({ email });
-
+    //   console.log(user);
     if (user) {
       let hash = user.password;
       bcrypt.compare(password, hash, function (err, result) {
@@ -92,6 +94,7 @@ authRouter.post("/login", emailPassRequiredValidator, async (req, res) => {
         .send({ status: "error", message: "Invalid Credentials" });
     }
   } catch (err) {
+    // console.log(err);
     return res
       .status(400)
       .send({ status: "error", message: "Unable to Login" });
@@ -107,6 +110,8 @@ authRouter.post("/forgotten_password", async (req, res) => {
         expiresIn: "15m",
       });
       const link = `http://localhost:3000/reset-password/${user._id}/${token}`;
+
+    
 
       let info = await transporter.sendMail({
         from: process.env.EMAIL_FROM,
@@ -166,6 +171,7 @@ authRouter.post(
           .send({ status: "error", message: "All Fields are Required" });
       }
     } catch (error) {
+      // console.log(error);
       res.status(400).send({ status: "error", message: "Invalid Token" });
     }
   }
@@ -176,7 +182,7 @@ authRouter.post(
   [checkUserAuth, passwordValidator],
   async (req, res) => {
     const { password, confirmPassword, userId } = req.body;
-
+ 
     if (password && confirmPassword) {
       if (password !== confirmPassword) {
         return res.status(500).send({
@@ -186,6 +192,7 @@ authRouter.post(
       } else {
         const salt = await bcrypt.genSalt(10);
         const newHashPassword = await bcrypt.hash(password, salt);
+
         await UserModel.findByIdAndUpdate(userId, {
           $set: { password: newHashPassword },
         });
