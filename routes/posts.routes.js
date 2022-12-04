@@ -18,7 +18,7 @@ postsRouter.post("/upload", upload.single("file"), async (req, res) => {
     const compressing = await webp.cwebp(
       req.file.path,
       output_path,
-      "-q 5",
+      "-q 25",
       (logging = "-quiet")
     );
     // console.log(compressing);
